@@ -1,6 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
 
 # C extensions
 *.so
@@ -60,3 +62,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Editors
+.vscode/
+.idea/
