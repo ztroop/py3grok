@@ -1,3 +1,6 @@
+[![Build Status](https://github.com/ztroop/py3grok/actions/workflows/build.yml/badge.svg)](https://github.com/ztroop/py3grok/actions/workflows/build.yml)
+[![codecov](https://codecov.io/gh/ztroop/py3grok/branch/master/graph/badge.svg?token=9IMVSWC2GH)](https://codecov.io/gh/ztroop/py3grok)
+
 # py3grok
 
 A Python library to parse strings and extract information from structured or unstructured data. This library is based on [pygrok](https://github.com/garyelephant/pygrok).
@@ -42,23 +45,14 @@ print(grok.match(text))
 
 Now `age` is of type `int` and `weight` is of type `float`.
 
-Some of the pattern you can use are listed here:
-```
-`WORD` means \b\w+\b in regular expression.
-`NUMBER` means (?:%{BASE10NUM})
-`BASE10NUM` means (?<![0-9.+-])(?>[+-]?(?:(?:[0-9]+(?:\.[0-9]+)?)|(?:\.[0-9]+)))
-
-other patterns such as `IP`, `HOSTNAME`, `URIPATH`, `DATE`, `TIMESTAMP_ISO8601`, `COMMONAPACHELOG`..
-```
-
 See all available patterns [here](./py3grok/patterns)!
 
 ## Additional Notes
 
-Beause python re module does not support regular expression syntax atomic grouping(?>),so pygrok requires [regex](https://pypi.python.org/pypi/regex) to be installed.
+The python `re` module does not support regular expression syntax atomic grouping `(?>)`, so pygrok requires [regex](https://pypi.python.org/pypi/regex) to be installed.
 
 Grok is a simple software that allows you to easily parse strings, logs and other files. With grok, you can turn unstructured log and event data into structured data.
 
-I recommend you to have a look at [logstash filter grok](https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html), it explains how Grok-like thing work.
+I recommend you to have a look at [logstash filter grok](https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html), it explains how Grok works.
 
-pattern files come from [logstash filter grok's pattern files](https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns)
+Pattern files come from [logstash filter grok's pattern files](https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns)
