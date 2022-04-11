@@ -28,20 +28,14 @@ class GrokPattern:
 
 
 class Grok:
-    def __init__(self, custom_dirs: List[str] = None, full_match: bool = True) -> None:
-        self.available_patterns: dict = {}
-        self.regex_obj: Optional[regex.Pattern] = None
-        self.full_match = full_match
+    def __init__(self, pattern: str, available_patterns: dict = None, **kwargs) -> None:
+        self.available_patterns: dict = available_patterns if available_patterns else {}
+        self.compiled_pattern: Optional[regex.Pattern] = None
         self._pattern: str = ""
         self._type_mapper: dict = {}
-
-        if custom_dirs:
-            DEFAULT_PATTERNS_DIR.extend(custom_dirs)
-
-        for directory in DEFAULT_PATTERNS_DIR:
-            for f in os.listdir(directory):
-                patterns = self.load_patterns_from_file(os.path.join(directory, f))
-                self.available_patterns.update(patterns)
+        self._extra_args = kwargs
+        # Set and compile given pattern.
+        self.pattern = pattern
 
     def __str__(self) -> str:
         return f"Grok ({self.pattern})"
@@ -54,7 +48,7 @@ class Grok:
             return False
         return (self.pattern, frozenset(self.available_patterns.items())) == (
             __o.pattern,
-            frozenset(self.available_patterns.items()),
+            frozenset(__o.available_patterns.items()),
         )
 
     def __hash__(self) -> int:
@@ -62,42 +56,25 @@ class Grok:
 
     @property
     def pattern(self) -> str:
+        """Returns the current pattern used in this instance of ``Grok``."""
         return self._pattern
 
     @pattern.setter
     def pattern(self, pattern) -> None:
         self._pattern = pattern
-        self._regex_compile()
+        self._compile_pattern()
 
     def set_pattern(self, pattern) -> None:
         """
-        Convienence function that sets the pattern. This is equivalent to calling
-        ``grok.pattern = pattern``. It's preferrable to set a new pattern instead
-        of re-instantiating a new Grok object.
+        Convienence function that changes the pattern. This is equivalent to
+        calling ``grok.pattern = pattern``.
         """
         self.pattern = pattern
 
-    @staticmethod
-    def load_patterns_from_file(file: str) -> dict:
-        """
-        Load patterns from a given file. Instiates each line as an individual
-        ``GrokPattern`` object that's accessible by ``self.available_patterns``.
-        """
-        patterns = {}
-
-        with open(file, "r", encoding="utf-8") as f:
-            lines = filter(lambda l: (l.strip() != "" and l[0] != "#"), f.readlines())
-            for l in lines:
-                sep = l.find(" ")
-                name = l[:sep]
-                patterns[name] = GrokPattern(name, l[sep:].strip())
-
-        return patterns
-
-    def _regex_compile(self) -> None:
+    def _compile_pattern(self) -> None:
         """
         Private function that compiles specified pattern into a ``Regex.Pattern``
-        which is accessible by ``self.regex_obj`` after executing this function.
+        which is accessible by ``self.compiled_pattern`` after executing this function.
         """
         self._type_mapper = {}
         pattern = copy(self.pattern)
@@ -108,13 +85,13 @@ class Grok:
                 self._type_mapper[match[1]] = match[2]
 
             # Replace %{pattern_name:custom_name} (or %{pattern_name:custom_name:type}
-            # with regex pattern and group name
+            # with regex pattern and group name.
             pattern = regex.sub(
                 r"%{(\w+):(\w+)(?::\w+)?}",
                 lambda m: f"(?P<{m.group(2)}>{self.available_patterns[m.group(1)].regex_str})",
                 pattern,
             )
-            # Replace %{pattern_name} with regex pattern
+            # Replace %{pattern_name} with regex pattern.
             pattern = regex.sub(
                 r"%{(\w+)}",
                 lambda m: f"({self.available_patterns[m.group(1)].regex_str})",
@@ -123,22 +100,22 @@ class Grok:
             if regex.search(r"%{\w+(:\w+)?}", pattern) is None:
                 break
 
-        self.regex_obj = regex.compile(pattern)
+        self.compiled_pattern = regex.compile(pattern, **self._extra_args)
 
-    def match(self, text: str) -> Optional[Dict[str, Any]]:
+    def match(self, text: str, full_match: bool = True) -> Optional[Dict[str, Any]]:
         """
         If text is matched with pattern, return variable names specified
         (%{pattern:variable name}) in pattern and their corresponding values.
         If not matched, return None.
         """
-        if not self.regex_obj:
+        if not self.compiled_pattern:
             return None
 
         match_object: Optional[regex.Match] = None
-        if self.full_match:
-            match_object = self.regex_obj.fullmatch(text)
+        if full_match:
+            match_object = self.compiled_pattern.fullmatch(text)
         else:
-            match_object = self.regex_obj.search(text)
+            match_object = self.compiled_pattern.search(text)
 
         if match_object is None:
             return None
@@ -154,3 +131,60 @@ class Grok:
                 pass
 
         return matches
+
+
+class GrokEnvironment:
+    def __init__(self, custom_dirs: List[str] = None):
+        """
+        The ``GrokEnvironment`` is a factory class that loads grok pattern files
+        and creates new instances of ``Grok`` for pattern matching. You will only
+        need to have **one** instance of this class and use the method,
+        ``GrokEnvironment.create()`` to create ``Grok`` instances.
+
+        Custom directories can be used if you want to load your own grok
+        pattern files.
+        """
+        self.custom_dirs = None
+        self.available_patterns = {}
+
+        if custom_dirs:
+            DEFAULT_PATTERNS_DIR.extend(custom_dirs)
+
+        for directory in DEFAULT_PATTERNS_DIR:
+            for f in os.listdir(directory):
+                patterns = self.load_patterns_from_file(os.path.join(directory, f))
+                self.available_patterns.update(patterns)
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, GrokEnvironment):
+            return False
+        return (frozenset(__o.available_patterns.items())) == (
+            frozenset(self.available_patterns.items()),
+        )
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self.available_patterns.items()))
+
+    def create(self, pattern: str, **kwargs) -> Grok:
+        """
+        Create a new instance of ``Grok`` for pattern matching. You can also pass
+        ``flags=re.IGNORECASE`` or other flags for regex configuration if needed.
+        """
+        return Grok(pattern, available_patterns=self.available_patterns, **kwargs)
+
+    @staticmethod
+    def load_patterns_from_file(file: str) -> dict:
+        """
+        Load patterns from a given file. Instiates each line as an individual
+        ``GrokPattern`` object that can be accessed from ``self.available_patterns``.
+        """
+        patterns = {}
+
+        with open(file, "r", encoding="utf-8") as f:
+            lines = filter(lambda l: (l.strip() != "" and l[0] != "#"), f.readlines())
+            for l in lines:
+                sep = l.find(" ")
+                name = l[:sep]
+                patterns[name] = GrokPattern(name, l[sep:].strip())
+
+        return patterns

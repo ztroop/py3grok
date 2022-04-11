@@ -19,31 +19,31 @@ pip install py3grok
 
 ## Getting Started
 
-```python
-from py3grok import Grok
+When using this library, you will want to first create an instance of `GrokEnvironment`.
+That will load the default and custom grok pattern files. Whenever you want to create a new
+pattern, you can run `GrokEnvironment.create(pattern)` which returns an instance of `Grok`,
+where you can simply run `Grok.match(text)`.
 
-grok = Grok()
-text = 'gary is male, 25 years old and weighs 68.5 kilograms'
-grok.set_pattern('%{WORD:name} is %{WORD:gender}, %{NUMBER:age} years old and weighs %{NUMBER:weight} kilograms')
+For flexibility, you can also modify a `Grok` instance's `pattern` property as well if needed.
+
+### Code Example
+
+```python
+from py3grok import GrokEnvironment
+
+grok_env = GrokEnvironment()
+pattern = '%{WORD:name} is %{WORD:gender}, %{NUMBER:age} years old and weighs %{NUMBER:weight} kilograms.'
+
+# Regex flags can be used, like: grok_env.create(pattern, flags=re.IGNORECASE)
+grok = grok_env.create(pattern)
+
+text = 'Gary is male, 25 years old and weighs 68.5 kilograms.'
 print(grok.match(text))
 
-# {'gender': 'male', 'age': '25', 'name': 'gary', 'weight': '68.5'}
+# {'gender': 'male', 'age': '25', 'name': 'Gary', 'weight': '68.5'}
 ```
 
 Numbers can be converted from string to `int` or `float` if you use `%{pattern:name:type}` syntax, such as `%{NUMBER:age:int}`
-
-```python
-from py3grok import Grok
-
-grok = Grok()
-text = 'gary is male, 25 years old and weighs 68.5 kilograms'
-grok.set_pattern('%{WORD:name} is %{WORD:gender}, %{NUMBER:age:int} years old and weighs %{NUMBER:weight:float} kilograms')
-print(grok.match(text))
-
-# {'gender': 'male', 'age': 25, 'name': 'gary', 'weight': 68.5}
-```
-
-Now `age` is of type `int` and `weight` is of type `float`.
 
 See all available patterns [here](./py3grok/patterns)!
 
@@ -55,4 +55,4 @@ Grok is a simple software that allows you to easily parse strings, logs and othe
 
 I recommend you to have a look at [logstash filter grok](https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html), it explains how Grok works.
 
-Pattern files come from [logstash filter grok's pattern files](https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns)
+Pattern files come from [logstash filter grok's pattern files](https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns).
