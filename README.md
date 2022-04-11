@@ -3,7 +3,7 @@
 
 # py3grok
 
-A Python library to parse strings and extract information from structured or unstructured data. This library is based on [pygrok](https://github.com/garyelephant/pygrok).
+A Python library to parse strings and extract information from structured or unstructured data. This library is based on [pygrok](https://github.com/garyelephant/pygrok), but provides some updates and improvements.
 
 ## Why?
 
